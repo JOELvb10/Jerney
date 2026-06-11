@@ -1,8 +1,12 @@
 # ---- Build stage ----
 FROM node:20-alpine AS build
+
 WORKDIR /app
+
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
+
+# Install production dependencies only
+RUN npm ci --omit=dev && npm cache clean --force
 
 # ---- Production stage ----
 FROM node:20-alpine AS production
@@ -10,22 +14,29 @@ FROM node:20-alpine AS production
 # Security: run as non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Security: remove unnecessary packages
+# Security: install dumb-init for proper signal handling
+# hadolint ignore=DL3018
 RUN apk --no-cache add dumb-init
 
 WORKDIR /app
 
-# Copy only production dependencies from build stage
+# Copy production dependencies
 COPY --from=build /app/node_modules ./node_modules
+
+# Copy application source code
 COPY src/ ./src/
 
-# Security: own files by non-root user
+# Security: change ownership to non-root user
 RUN chown -R appuser:appgroup /app
 
+# Switch to non-root user
 USER appuser
 
+# Application port
 EXPOSE 5000
 
-# Security: use dumb-init for proper signal handling (PID 1 problem)
+# Use dumb-init as PID 1
 ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
 CMD ["node", "src/index.js"]
