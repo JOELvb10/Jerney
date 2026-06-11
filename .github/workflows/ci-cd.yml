@@ -162,32 +162,32 @@ jobs:
           timeout: "10m"
 
   # ==============================================================
-# STAGE 5: IaC Security Scan (Checkov)
-# ==============================================================
+  # STAGE 5: IaC Security Scan (Checkov)
+  # ==============================================================
 
-iac-scan:
-  name: "🏗️ IaC Security Scan"
-  runs-on: ubuntu-latest
-  continue-on-error: true
-  needs: lint
+  iac-scan:
+    name: "🏗️ IaC Security Scan"
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: lint
 
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install Checkov
-      run: pip install checkov
+      - name: Install Checkov
+        run: pip install checkov
 
-    - name: Scan Terraform
-      run: |
-        checkov -d terraform \
-          --framework terraform \
-          --skip-check CKV_AWS_39,CKV_AWS_58
+      - name: Scan Terraform
+        run: |
+          checkov -d terraform \
+            --framework terraform \
+            --skip-check CKV_AWS_39,CKV_AWS_58
 
-    - name: Scan Kubernetes
-      run: |
-        checkov -d k8s \
-          --framework kubernetes
+      - name: Scan Kubernetes
+        run: |
+          checkov -d k8s \
+            --framework kubernetes
 
   # ==============================================================
   # STAGE 6: Dockerfile Lint (Hadolint)
