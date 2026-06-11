@@ -1,29 +1,37 @@
 # ---- Build stage ----
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
+
 WORKDIR /app
+
 COPY package.json package-lock.json* ./
+
+# Install dependencies
 RUN npm ci && npm cache clean --force
+
 COPY . .
+
+# Build application
 RUN npm run build
 
 # ---- Production stage ----
-FROM nginx:1.27-alpine AS production
+FROM nginx:1.28-alpine AS production
 
-# Security: remove default nginx config
-RUN rm -rf /etc/nginx/conf.d/default.conf /usr/share/nginx/html/*
+# Remove default content
+RUN rm -rf /etc/nginx/conf.d/default.conf \
+    && rm -rf /usr/share/nginx/html/*
 
-# Copy custom nginx config
+# Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy built frontend from build stage
+# Copy frontend build artifacts
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Security: run nginx as non-root
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid
+# Fix permissions
+RUN chown -R nginx:nginx /usr/share/nginx/html \
+    && chown -R nginx:nginx /var/cache/nginx \
+    && chown -R nginx:nginx /var/log/nginx \
+    && touch /var/run/nginx.pid \
+    && chown nginx:nginx /var/run/nginx.pid
 
 USER nginx
 
